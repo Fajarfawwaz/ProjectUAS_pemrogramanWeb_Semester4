@@ -5,7 +5,8 @@ Repositori ini berisi sistem informasi pengelolaan data buku (E-Library) yang di
 ## 👤 Identitas Mahasiswa
 * **Nama**: Fajar Fawwaz Atallah
 * **NIM**: 312410357
-* **Kelas**: TI.24.A4
+* **Kelas**: I241D / TI.24.A4
+* **Matkul**: PEMROGRAMAN WEB
 
 ## 🏗️ Struktur Proyek
 * `backend-api/`: RESTful API Server dibangun dengan CodeIgniter 4, menerapkan fitur keamanan JWT (JSON Web Token).
@@ -14,11 +15,13 @@ Repositori ini berisi sistem informasi pengelolaan data buku (E-Library) yang di
 ## 🖼️ Dokumentasi Visual & Pengujian
 
 ### 1. Skema Relasi Database
-![Relasi Database](path/ke/screenshot_db.png)
+<img width="600" height="223" alt="image" src="https://github.com/user-attachments/assets/451ab840-e6d0-47de-8d12-cf75f09657e2" />
+
 *Lampiran: Visualisasi relasi tabel (users, kategori, buku) pada database.*
 
 ### 2. Uji Coba Keamanan API (Backend)
-![Postman Error 401](path/ke/postman_error_401.png)
+<img width="509" height="374" alt="Screenshot 2026-06-12 104902" src="https://github.com/user-attachments/assets/ebcea66b-39ce-490c-9a08-e84eba62035d" />
+
 *Lampiran: Pengujian endpoint `POST` pada Postman tanpa token. Sistem berhasil memblokir akses dan mengembalikan status **401 Unauthorized** sebagai bukti `AuthFilter` bekerja dengan baik.*
 
 ### 3. Antarmuka Aplikasi (Frontend)
