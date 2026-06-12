@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Library Pro | Dashboard</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <div id="app">
+        <header class="bg-blue-600 text-white p-6 mb-8 shadow-md">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-black tracking-tight">Portal E-Library Fajar</h1>
+                <button v-if="isLoggedIn" @click="logout" class="bg-red-500 hover:bg-red-600 px-6 py-2 rounded-xl font-bold transition">
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-6 pb-12">
+            <div v-if="!isLoggedIn" class="flex justify-center mt-10">
+                <div class="bg-white p-10 rounded-3xl shadow-xl w-full max-w-sm border border-gray-100">
+                    <h2 class="text-3xl font-extrabold mb-8 text-center text-gray-800">{{ isRegister ? 'Registrasi Akun' : 'Login E-Library' }}</h2>
+                    <input v-model="loginData.username" placeholder="Username" class="w-full p-4 mb-4 bg-gray-50 rounded-2xl border outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input v-model="loginData.password" type="password" placeholder="Password" class="w-full p-4 mb-6 bg-gray-50 rounded-2xl border outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button @click="isRegister ? register() : login()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition">
+                        {{ isRegister ? 'Daftar Sekarang' : 'Masuk Sekarang' }}
+                    </button>
+                    <p class="mt-6 text-center text-gray-500 text-sm cursor-pointer hover:text-indigo-600" @click="isRegister = !isRegister">
+                        {{ isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Registrasi' }}
+                    </p>
+                </div>
+            </div>
+
+            <div v-else-if="currentPage === 'dashboard' || currentPage === 'riwayat'" class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-3 space-y-8">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-3xl font-black text-gray-800">{{ currentPage === 'dashboard' ? 'Daftar Buku' : 'Buku Saya' }}</h1>
+                        <div v-if="userRole !== 'admin'" class="flex gap-2">
+                            <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'" class="px-4 py-2 rounded-lg font-bold shadow-sm">Katalog</button>
+                            <button @click="loadRiwayat()" :class="currentPage === 'riwayat' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'" class="px-4 py-2 rounded-lg font-bold shadow-sm">Buku Saya</button>
+                        </div>
+                    </div>
+                    
+                    <div v-if="userRole === 'admin'" class="flex gap-4">
+                        <button @click="openModal()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700">+ Tambah Buku</button>
+                    </div>
+
+                    <div v-if="currentPage === 'dashboard'">
+                        <div class="flex flex-col md:flex-row gap-4 mb-8">
+                            <input v-model="search" placeholder="🔍 Cari judul buku..." class="flex-1 p-4 rounded-xl border border-gray-200 outline-none">
+                            <select v-model="selectedKategori" class="p-4 rounded-xl border border-gray-200 outline-none">
+                                <option value="semua">Semua Kategori</option>
+                                <option v-for="kat in kategoris" :key="kat.id" :value="kat.id">{{ kat.nama_kategori }}</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div v-for="book in filteredBooks" :key="book.id" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition">
+                                <span class="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full uppercase">{{ getNamaKategori(book.kategori_id) }}</span>
+                                <h3 class="text-xl font-bold text-gray-800 mt-3">{{ book.judul }}</h3>
+                                <p class="text-gray-500 mb-6 text-sm">Penulis: {{ book.penulis }}</p>
+                                <div v-if="userRole === 'admin'" class="flex gap-2">
+                                    <button @click="editBook(book)" class="flex-1 py-3 bg-gray-100 rounded-xl font-semibold">Edit</button>
+                                    <button @click="deleteBook(book.id)" class="flex-1 py-3 text-red-600 bg-red-50 rounded-xl font-semibold">Hapus</button>
+                                </div>
+                                <button v-else @click="pilihBuku(book)" :disabled="book.status === 'dipinjam'" :class="book.status === 'dipinjam' ? 'bg-gray-200 text-gray-500' : 'bg-green-600 text-white'" class="w-full py-3 rounded-xl font-bold transition">
+                                    {{ book.status === 'dipinjam' ? 'Sudah Dipinjam' : 'Pinjam Sekarang' }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="userRole === 'admin'" class="mt-12 bg-white p-8 rounded-2xl shadow-sm border">
+                            <h2 class="text-xl font-bold mb-6">Daftar Peminjam Buku</h2>
+                            <table class="w-full text-left">
+                                <thead><tr class="text-gray-400 text-sm"><th class="pb-4">User</th><th class="pb-4">Buku</th><th class="pb-4">Status</th><th class="pb-4">Aksi</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="p in listPeminjaman" :key="p.id" class="border-t"><td class="py-4">{{ p.username }}</td><td class="py-4">{{ p.judul }}</td><td class="py-4 capitalize">{{ p.status }}</td><td class="py-4"><button v-if="p.status === 'dipinjam'" @click="kembalikanBuku(p.id)" class="text-blue-600 font-bold underline">Kembalikan</button></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div v-else-if="currentPage === 'riwayat' && userRole !== 'admin'" class="bg-white p-8 rounded-2xl shadow-sm border">
+                        <h2 class="text-xl font-bold mb-6">Riwayat Peminjaman Anda</h2>
+                        <table class="w-full text-left">
+                            <thead><tr class="text-gray-400 text-sm"><th class="pb-4">Judul Buku</th><th class="pb-4">Status</th></tr></thead>
+                            <tbody>
+                                <tr v-for="p in riwayatUser" :key="p.id" class="border-t"><td class="py-4">{{ p.judul }}</td><td class="py-4 font-bold" :class="p.status === 'dipinjam' ? 'text-orange-500' : 'text-green-600'">{{ p.status }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <aside class="lg:col-span-1">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border sticky top-6">
+                        <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Kategori Buku</h3>
+                        <ul class="space-y-2">
+                            <li v-for="kat in kategoris" :key="kat.id" @click="selectedKategori = kat.id" :class="selectedKategori === kat.id ? 'text-blue-700 font-bold' : 'text-gray-600'" class="cursor-pointer hover:text-blue-600 text-sm p-2 rounded-lg bg-gray-50 hover:bg-blue-50 transition">
+                                {{ kat.nama_kategori }}
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+
+            <div v-else-if="currentPage === 'peminjaman'" class="bg-white p-10 rounded-3xl shadow-xl max-w-lg mx-auto mt-10">
+                <h2 class="text-2xl font-bold mb-6">Konfirmasi Peminjaman</h2>
+                <div class="bg-gray-50 p-6 rounded-2xl mb-6">
+                    <p>Judul: <strong>{{ selectedBook?.judul }}</strong></p>
+                    <p>Penulis: <strong>{{ selectedBook?.penulis }}</strong></p>
+                    <div class="mt-4">
+                        <label class="block text-sm font-semibold mb-2">Tanggal Peminjaman:</label>
+                        <input type="date" v-model="pinjamForm.tgl_pinjam" class="w-full p-3 rounded-lg border mb-4">
+                        <label class="block text-sm font-semibold mb-2">Tanggal Pengembalian:</label>
+                        <input type="date" v-model="pinjamForm.tgl_kembali" class="w-full p-3 rounded-lg border">
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <button @click="currentPage = 'dashboard'" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold">Batal</button>
+                    <button @click="prosesPinjam" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold">Konfirmasi</button>
+                </div>
+            </div>
+
+            <div v-if="showModal" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
+                <div class="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl">
+                    <h2 class="text-2xl font-bold mb-6">{{ isEdit ? 'Edit Buku' : 'Tambah Buku' }}</h2>
+                    <input v-model="newBook.judul" placeholder="Judul" class="w-full p-4 mb-4 bg-gray-50 rounded-2xl border">
+                    <input v-model="newBook.penulis" placeholder="Penulis" class="w-full p-4 mb-4 bg-gray-50 rounded-2xl border">
+                    <select v-model="newBook.kategori_id" class="w-full p-4 mb-6 bg-gray-50 rounded-2xl border">
+                        <option v-for="kat in kategoris" :key="kat.id" :value="kat.id">{{ kat.nama_kategori }}</option>
+                    </select>
+                    <div class="flex gap-3">
+                        <button @click="showModal = false" class="flex-1 py-4 bg-gray-100 rounded-2xl">Batal</button>
+                        <button @click="saveBook" class="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold">Simpan</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Setup Axios Interceptor untuk Token
+        axios.interceptors.request.use(config => {
+            const token = localStorage.getItem('token');
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+            return config;
+        });
+
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    isLoggedIn: !!localStorage.getItem('token'), 
+                    isRegister: false, 
+                    userRole: localStorage.getItem('role') || '', 
+                    currentPage: 'dashboard',
+                    currentUserId: localStorage.getItem('userId') || null, 
+                    books: [], listPeminjaman: [], riwayatUser: [], kategoris: [], 
+                    search: '', selectedKategori: 'semua',
+                    showModal: false, isEdit: false, selectedBook: null, 
+                    loginData: { username: '', password: '' },
+                    pinjamForm: { tgl_pinjam: '', tgl_kembali: '' },
+                    newBook: { id: '', judul: '', penulis: '', kategori_id: '1' }
+                }
+            },
+            computed: {
+                filteredBooks() {
+                    let list = this.books.map(b => ({...b, status: b.status_pinjam === 'dipinjam' ? 'dipinjam' : 'tersedia'}));
+                    list = list.filter(b => b.judul.toLowerCase().includes(this.search.toLowerCase()));
+                    if (this.selectedKategori !== 'semua') list = list.filter(b => b.kategori_id == this.selectedKategori);
+                    return list;
+                }
+            },
+            methods: {
+                getNamaKategori(id) { const kat = this.kategoris.find(k => k.id == id); return kat ? kat.nama_kategori : 'Umum'; },
+                login() { 
+                    axios.post('http://localhost:8080/auth/login', this.loginData).then(res => { 
+                        localStorage.setItem('token', res.data.token);
+                        localStorage.setItem('role', res.data.user.role);
+                        localStorage.setItem('userId', res.data.user.id);
+                        window.location.reload();
+                    }).catch(() => alert('Login Gagal!')); 
+                },
+                register() { axios.post('http://localhost:8080/auth/register', this.loginData).then(() => { alert('Berhasil!'); this.isRegister = false; }).catch(() => alert('Gagal!')); },
+                logout() { localStorage.clear(); window.location.reload(); },
+                fetchBooks() { axios.get('http://localhost:8080/book').then(res => this.books = res.data); },
+                fetchKategoris() { axios.get('http://localhost:8080/kategori').then(res => this.kategoris = res.data); },
+                fetchPeminjaman() { axios.get('http://localhost:8080/peminjaman/all').then(res => this.listPeminjaman = res.data); },
+                loadRiwayat() { this.currentPage = 'riwayat'; axios.get(`http://localhost:8080/peminjaman/user/${this.currentUserId}`).then(res => this.riwayatUser = res.data); },
+                pilihBuku(book) { this.selectedBook = book; this.currentPage = 'peminjaman'; },
+                prosesPinjam() { 
+                    const data = { book_id: this.selectedBook.id, user_id: this.currentUserId, ...this.pinjamForm };
+                    axios.post('http://localhost:8080/peminjaman/create', data).then(() => { alert('Berhasil!'); this.currentPage = 'dashboard'; this.fetchBooks(); }).catch(err => alert(err.response.data.messages.error)); 
+                },
+                kembalikanBuku(id) { axios.post(`http://localhost:8080/peminjaman/return/${id}`).then(() => { alert('Berhasil!'); this.fetchPeminjaman(); this.fetchBooks(); }); },
+                openModal() { this.showModal = true; this.isEdit = false; this.newBook = { judul: '', penulis: '', kategori_id: '1' }; },
+                editBook(book) { this.newBook = { ...book }; this.isEdit = true; this.showModal = true; },
+                saveBook() { const url = this.isEdit ? `http://localhost:8080/book/update/${this.newBook.id}` : 'http://localhost:8080/book/create'; axios.post(url, this.newBook).then(() => { this.showModal = false; this.fetchBooks(); }); },
+                deleteBook(id) { if(confirm('Hapus?')) axios.delete(`http://localhost:8080/book/delete/${id}`).then(() => this.fetchBooks()); }
+            },
+            mounted() {
+                if(this.isLoggedIn) { this.fetchBooks(); this.fetchKategoris(); if(this.userRole === 'admin') this.fetchPeminjaman(); }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
