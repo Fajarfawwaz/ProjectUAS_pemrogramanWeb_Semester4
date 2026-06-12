@@ -35,6 +35,8 @@ Repositori ini berisi sistem informasi pengelolaan data buku (E-Library) yang di
 
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/245ef2ea-8abe-42aa-8ded-a0879aed901f" />
 
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/da216d45-94d0-4bd8-bd7d-facdd5237a9a" />
+
 * **Tabel Data**:
 
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/05132daa-afe3-473f-9657-8383b0c2c50d" />
