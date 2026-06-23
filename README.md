@@ -8,6 +8,10 @@ Repositori ini berisi sistem informasi pengelolaan data buku (E-Library) yang di
 * **Kelas**: I241D / TI.24.A4
 * **Matkul**: PEMROGRAMAN WEB
 
+# Dikarenakan Backend nya tidak cukup untuk di upload kedalam file Repository github, maka silahkan cek folder backend di dalam link di bawah ini :
+
+https://drive.google.com/drive/folders/1XfF__368NbjWzXw3wYIB5pxxqjIf9Sd6?usp=sharing 
+
 ## 🏗️ Struktur Proyek
 * `backend-api/`: RESTful API Server dibangun dengan CodeIgniter 4, menerapkan fitur keamanan JWT (JSON Web Token).
 * `frontend-spa/`: Frontend Single Page Application (SPA) dibangun dengan VueJS 3, TailwindCSS (Ultra-Modern UI), dan Axios untuk komunikasi API.
